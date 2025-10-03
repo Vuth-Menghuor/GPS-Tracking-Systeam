@@ -1,0 +1,267 @@
+# api/services/database_service.py
+import logging
+from datetime import datetime, timezone, timedelta
+from typing import List, Dict, Any
+from django.db import transaction, IntegrityError
+from django.utils import timezone as django_timezone
+from api.models import Device, DeviceLocation, APIBatch, DeviceStatusSummary
+
+logger = logging.getLogger(__name__)
+
+class DatabaseService:
+    """Service class for saving tracking data to PostgreSQL"""
+    
+    @staticmethod
+    def create_batch_record(batch_id: str, total_imeis: int, metadata: Dict = None) -> APIBatch:
+        """Create a new API batch record"""
+        return APIBatch.objects.create(
+            batch_id=batch_id,
+            total_imeis=total_imeis,
+            started_at=django_timezone.now(),
+            status='running',
+            metadata=metadata or {}
+        )
+    
+    @staticmethod
+    def update_batch_record(batch_id: str, **kwargs) -> None:
+        """Update an existing batch record"""
+        try:
+            batch = APIBatch.objects.get(batch_id=batch_id)
+            for key, value in kwargs.items():
+                setattr(batch, key, value)
+            if kwargs.get('completed_at') and batch.started_at:
+                duration = kwargs['completed_at'] - batch.started_at
+                batch.duration_seconds = duration.total_seconds()
+            batch.save()
+        except APIBatch.DoesNotExist:
+            logger.error(f"Batch {batch_id} not found for update")
+    
+    @staticmethod
+    def convert_unix_to_datetime(unix_timestamp) -> datetime:
+        """Convert Unix timestamp to datetime object in GMT+7"""
+        if not unix_timestamp or unix_timestamp in ["", "0", 0, "None", "null", None]:
+            return None
+            
+        try:
+            if isinstance(unix_timestamp, str):
+                unix_timestamp = int(unix_timestamp)
+            
+            # Create UTC datetime from timestamp
+            utc_datetime = datetime.fromtimestamp(unix_timestamp, tz=timezone.utc)
+            
+            # Convert to GMT+7
+            gmt7_timezone = timezone(timedelta(hours=7))
+            gmt7_datetime = utc_datetime.astimezone(gmt7_timezone)
+            
+            return gmt7_datetime
+            
+        except (ValueError, TypeError, OSError) as e:
+            logger.warning(f"Error converting timestamp {unix_timestamp}: {e}")
+            return None
+    
+    @staticmethod
+    def ensure_device_exists(imei: str) -> Device:
+        """Get or create device record"""
+        device, created = Device.objects.get_or_create(
+            imei=imei,
+            defaults={'device_name': f'Device_{imei}'}
+        )
+        if created:
+            logger.info(f"Created new device record for IMEI: {imei}")
+        return device
+    
+    @staticmethod
+    @transaction.atomic
+    def save_tracking_data(processed_data: List[Dict[str, Any]], batch_id: str) -> Dict[str, int]:
+        """
+        Save processed tracking data to database
+        Returns statistics about the save operation
+        """
+        stats = {
+            'total_records': len(processed_data),
+            'successful_saves': 0,
+            'failed_saves': 0,
+            'devices_created': 0,
+            'devices_updated': 0
+        }
+        
+        device_cache = {}  # Cache devices to avoid repeated DB queries
+        
+        for record in processed_data:
+            try:
+                imei = record.get('imei', '').strip()
+                if not imei:
+                    logger.warning(f"Empty IMEI in record: {record}")
+                    stats['failed_saves'] += 1
+                    continue
+                
+                # Get or create device (use cache)
+                if imei not in device_cache:
+                    device_cache[imei] = DatabaseService.ensure_device_exists(imei)
+                    if device_cache[imei].created_at == device_cache[imei].updated_at:
+                        stats['devices_created'] += 1
+                    else:
+                        stats['devices_updated'] += 1
+                
+                device = device_cache[imei]
+                
+                # Convert timestamps
+                hearttime_datetime = None
+                hearttime_unix = record.get('hearttime_unix')
+                if hearttime_unix:
+                    hearttime_datetime = DatabaseService.convert_unix_to_datetime(hearttime_unix)
+                
+                # Parse coordinates
+                latitude = longitude = None
+                try:
+                    if record.get('latitude') and record.get('longitude'):
+                        latitude = float(record['latitude'])
+                        longitude = float(record['longitude'])
+                except (ValueError, TypeError):
+                    logger.warning(f"Invalid coordinates for IMEI {imei}: {record.get('latitude')}, {record.get('longitude')}")
+                
+                # Parse datastatus
+                datastatus = None
+                try:
+                    if record.get('datastatus') is not None and str(record.get('datastatus')).strip():
+                        datastatus = int(record['datastatus'])
+                except (ValueError, TypeError):
+                    logger.warning(f"Invalid datastatus for IMEI {imei}: {record.get('datastatus')}")
+                
+                # Create DeviceLocation record
+                location = DeviceLocation(
+                    device=device,
+                    imei=imei,
+                    latitude=latitude,
+                    longitude=longitude,
+                    coordinates=record.get('coordinates', ''),
+                    datastatus=datastatus,
+                    datastatus_description=record.get('datastatus_description', ''),
+                    hearttime_date=record.get('hearttime_date') or None,
+                    hearttime_time=record.get('hearttime_time') or None,
+                    hearttime_unix=hearttime_unix,
+                    hearttime_datetime=hearttime_datetime,
+                    api_status=record.get('status', ''),
+                    batch_id=batch_id,
+                    raw_data=record  # Store the entire record as JSON
+                )
+                
+                location.save()
+                stats['successful_saves'] += 1
+                
+            except Exception as e:
+                logger.error(f"Error saving record for IMEI {record.get('imei', 'unknown')}: {e}")
+                stats['failed_saves'] += 1
+                continue
+        
+        logger.info(f"Save completed: {stats}")
+        return stats
+    
+    @staticmethod
+    def update_device_summaries(imei_list: List[str] = None) -> int:
+        """
+        Update device status summaries
+        If imei_list is provided, only update those devices
+        """
+        updated_count = 0
+        
+        if imei_list:
+            devices = Device.objects.filter(imei__in=imei_list)
+        else:
+            devices = Device.objects.all()
+        
+        for device in devices:
+            try:
+                # Get latest location data
+                latest_location = device.locations.filter(
+                    hearttime_datetime__isnull=False
+                ).order_by('-hearttime_datetime').first()
+                
+                if not latest_location:
+                    latest_location = device.locations.order_by('-hearttime_unix').first()
+                
+                # Calculate statistics
+                total_records = device.locations.count()
+                first_location = device.locations.order_by('hearttime_datetime', 'hearttime_unix').first()
+                
+                # Get or create summary
+                summary, created = DeviceStatusSummary.objects.get_or_create(
+                    device=device,
+                    defaults={}
+                )
+                
+                # Update summary fields
+                if latest_location:
+                    summary.latest_latitude = latest_location.latitude
+                    summary.latest_longitude = latest_location.longitude
+                    summary.latest_coordinates = latest_location.coordinates
+                    summary.latest_datastatus = latest_location.datastatus
+                    summary.latest_datastatus_description = latest_location.datastatus_description
+                    summary.latest_hearttime = latest_location.hearttime_datetime
+                    summary.latest_update = django_timezone.now()
+                    summary.is_currently_online = (latest_location.datastatus == 2)  # Online status
+                    summary.has_valid_location = bool(latest_location.latitude and latest_location.longitude)
+                
+                summary.total_records = total_records
+                
+                if first_location and first_location.hearttime_datetime:
+                    summary.first_seen = first_location.hearttime_datetime
+                if latest_location and latest_location.hearttime_datetime:
+                    summary.last_seen = latest_location.hearttime_datetime
+                    
+                    # Calculate days active
+                    if summary.first_seen:
+                        days_active = (summary.last_seen - summary.first_seen).days
+                        summary.days_active = max(days_active, 1)  # At least 1 day if we have data
+                
+                summary.save()
+                updated_count += 1
+                
+            except Exception as e:
+                logger.error(f"Error updating summary for device {device.imei}: {e}")
+                continue
+        
+        logger.info(f"Updated {updated_count} device summaries")
+        return updated_count
+    
+    @staticmethod
+    def get_device_history(imei: str, days: int = 30) -> List[DeviceLocation]:
+        """Get device location history for specified days"""
+        cutoff_date = django_timezone.now() - timedelta(days=days)
+        return DeviceLocation.objects.filter(
+            imei=imei,
+            hearttime_datetime__gte=cutoff_date
+        ).order_by('-hearttime_datetime')
+    
+    @staticmethod
+    def get_online_devices() -> List[Device]:
+        """Get all currently online devices"""
+        return Device.objects.filter(
+            status_summary__is_currently_online=True
+        ).select_related('status_summary')
+    
+    @staticmethod
+    def get_batch_statistics(batch_id: str) -> Dict:
+        """Get statistics for a specific batch"""
+        try:
+            batch = APIBatch.objects.get(batch_id=batch_id)
+            locations_count = DeviceLocation.objects.filter(batch_id=batch_id).count()
+            
+            return {
+                'batch_info': {
+                    'batch_id': batch.batch_id,
+                    'status': batch.status,
+                    'started_at': batch.started_at,
+                    'completed_at': batch.completed_at,
+                    'duration_seconds': batch.duration_seconds,
+                    'total_imeis': batch.total_imeis,
+                    'successful_records': batch.successful_records,
+                    'failed_records': batch.failed_records,
+                },
+                'locations_saved': locations_count,
+                'devices_in_batch': DeviceLocation.objects.filter(
+                    batch_id=batch_id
+                ).values('imei').distinct().count()
+            }
+        except APIBatch.DoesNotExist:
+            return {'error': f'Batch {batch_id} not found'}
