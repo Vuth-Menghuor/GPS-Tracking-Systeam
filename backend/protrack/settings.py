@@ -161,7 +161,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Nuxt.js default port
     "http://127.0.0.1:3000",
-    "https://gps-tracking-frontend.onrender.com",  # Frontend on Render
+    "https://gps-tracking-frontend-yi4i.onrender.com",  # Frontend on Render
 ]
 
 # Add frontend URL from environment variable

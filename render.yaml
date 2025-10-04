@@ -31,7 +31,7 @@ services:
     plan: free
     envVars:
       - key: NUXT_PUBLIC_API_BASE
-        value: "https://gps-tracking-backend.onrender.com/api"
+        value: "https://gps-tracking-systeam.onrender.com/api"
 
 databases:
   - name: gps-tracking-db
