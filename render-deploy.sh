@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# 🌟 Render Deployment Helper
+echo "🚀 GPS Tracking System - Render Deployment"
+echo "==========================================="
+echo ""
+
+echo "✅ Your account setup:"
+echo "1. Confirm your email: e20211532@dtc1.tc.edu.kh"
+echo "2. Complete Render account setup"
+echo ""
+
+echo "🔧 Backend Deployment Steps:"
+echo "----------------------------"
+echo "1. Go to https://render.com/dashboard"
+echo "2. Click 'New +' → 'Web Service'"
+echo "3. Connect GitHub: GPS-Tracking-Systeam"
+echo "4. Configuration:"
+echo "   - Name: gps-tracking-backend"
+echo "   - Root Directory: backend"
+echo "   - Build Command: pip install -r requirements.txt"
+echo "   - Start Command: gunicorn protrack.wsgi:application"
+echo ""
+
+echo "🔐 Environment Variables:"
+echo "------------------------"
+echo "DEBUG=False"
+echo "SECRET_KEY=gps-tracking-super-secret-key-render-2024"
+echo "PROTRACK_API_TOKEN=your-actual-token"
+echo "DATABASE_URL=postgresql://... (from PostgreSQL service)"
+echo ""
+
+echo "💾 Database Setup:"
+echo "-----------------"
+echo "1. Create 'New +' → 'PostgreSQL'"
+echo "2. Name: gps-tracking-db"
+echo "3. Copy Internal Database URL"
+echo "4. Add as DATABASE_URL environment variable"
+echo ""
+
+echo "🌐 Frontend (Vercel):"
+echo "--------------------"
+echo "1. Deploy to Vercel as planned"
+echo "2. Environment variable:"
+echo "   NUXT_PUBLIC_API_BASE=https://your-render-url.onrender.com/api"
+echo ""
+
+echo "📖 For detailed guide: check RENDER_DEPLOYMENT.md"
+echo ""
+echo "🎉 Total cost: $0 (FREE forever!)"

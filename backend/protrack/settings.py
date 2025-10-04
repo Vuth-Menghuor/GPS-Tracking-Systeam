@@ -35,6 +35,11 @@ ALLOWED_HOSTS = [
     '.onrender.com',  # Render domain (if used)
 ]
 
+# Add Render URL if available
+if os.getenv('RENDER_EXTERNAL_URL'):
+    ALLOWED_HOSTS.append(os.getenv('RENDER_EXTERNAL_URL').replace('https://', '').replace('http://', ''))
+
+# Add Railway URL if available
 if os.getenv('RAILWAY_STATIC_URL'):
     ALLOWED_HOSTS.append(os.getenv('RAILWAY_STATIC_URL').replace('https://', '').replace('http://', ''))
 
