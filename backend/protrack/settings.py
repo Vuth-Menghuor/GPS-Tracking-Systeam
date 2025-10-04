@@ -157,10 +157,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Nuxt.js default port
     "http://127.0.0.1:3000",
-    "https://your-frontend-app.vercel.app",  # Update with your actual Vercel domain
 ]
 
-# For production, you might want to allow all origins (be careful!)
+# Add frontend URL from environment variable or allow all origins in production
+FRONTEND_URL = os.getenv('FRONTEND_URL')
+if FRONTEND_URL:
+    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
+
+# For production, allow all origins temporarily for easier setup
 if not DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 
