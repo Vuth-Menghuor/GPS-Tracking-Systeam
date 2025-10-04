@@ -1,8 +1,27 @@
-# Render.com deployment configuration
-# This file tells Render how to build and deploy your Django app
+services:
+  # Web Service
+  - type: web
+    name: gps-tracking-backend
+    env: python
+    region: oregon
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn protrack.wsgi:application"
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: DEBUG
+        value: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gps-tracking-db
+          property: connectionString
 
-# Build command (automatically detected from requirements.txt)
-# pip install -r requirements.txt
-
-# Start command
-gunicorn protrack.wsgi:application
+  # Database Service
+  - type: pgsql
+    name: gps-tracking-db
+    region: oregon
+    plan: free
+    databaseName: gps_tracking
+    databaseUser: gps_user

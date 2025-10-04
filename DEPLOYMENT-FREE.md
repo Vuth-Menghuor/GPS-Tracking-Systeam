@@ -5,6 +5,7 @@ Your Railway trial ended, but don't worry! Here are excellent free alternatives.
 ## 🎯 RECOMMENDED: Render + Vercel
 
 ### ✅ Why Render?
+
 - **FREE tier**: 750 hours/month (enough for 24/7 for 31 days)
 - **Free PostgreSQL**: 1GB database included
 - **Automatic deployments** from GitHub
@@ -18,6 +19,7 @@ Your Railway trial ended, but don't worry! Here are excellent free alternatives.
 1. **Go to [Render.com](https://render.com)**
 2. **Sign up** with GitHub (no credit card needed)
 3. **Create New Web Service**:
+
    - Click "New +" → "Web Service"
    - Connect your GitHub account
    - Select `GPS-Tracking-Systeam` repository
@@ -28,6 +30,7 @@ Your Railway trial ended, but don't worry! Here are excellent free alternatives.
    - **Start Command**: `gunicorn protrack.wsgi:application`
 
 4. **Add Environment Variables**:
+
    ```
    DEBUG=False
    SECRET_KEY=gps-tracking-super-secret-key-change-2024
@@ -36,6 +39,7 @@ Your Railway trial ended, but don't worry! Here are excellent free alternatives.
    ```
 
 5. **Create PostgreSQL Database**:
+
    - Click "New +" → "PostgreSQL"
    - **Name**: `gps-tracking-db`
    - **Database**: `gps_tracking`
@@ -43,13 +47,15 @@ Your Railway trial ended, but don't worry! Here are excellent free alternatives.
    - Copy the **Internal Database URL**
 
 6. **Add Database URL to Web Service**:
+
    - Go back to your web service
    - Add environment variable:
+
    ```
    DATABASE_URL=postgresql://gps_user:password@hostname:port/gps_tracking
    ```
 
-7. **Deploy**: 
+7. **Deploy**:
    - Click "Create Web Service"
    - Wait 5-10 minutes for deployment
    - Your backend will be at: `https://gps-tracking-backend.onrender.com`
@@ -59,6 +65,7 @@ Your Railway trial ended, but don't worry! Here are excellent free alternatives.
 1. **Go to [Vercel.com](https://vercel.com)**
 2. **Sign up** with GitHub
 3. **New Project**:
+
    - Select `GPS-Tracking-Systeam`
    - **Root Directory**: `frontend/nuxt-app`
    - Click "Deploy"
@@ -86,20 +93,22 @@ Your Railway trial ended, but don't worry! Here are excellent free alternatives.
 
 ## 💰 Cost Comparison
 
-| Service | Backend | Database | Frontend | Monthly Cost |
-|---------|---------|----------|----------|--------------|
-| **Render + Vercel** | FREE | FREE | FREE | **$0** |
-| Railway | $5+ | Included | - | $5+ |
-| Heroku | $7+ | $9+ | - | $16+ |
+| Service             | Backend | Database | Frontend | Monthly Cost |
+| ------------------- | ------- | -------- | -------- | ------------ |
+| **Render + Vercel** | FREE    | FREE     | FREE     | **$0**       |
+| Railway             | $5+     | Included | -        | $5+          |
+| Heroku              | $7+     | $9+      | -        | $16+         |
 
 ## 🔧 Alternative Free Options
 
 ### Option 2: PythonAnywhere + Vercel
+
 - **PythonAnywhere**: Free tier for Python apps
 - **Pros**: Simple setup, good for beginners
 - **Cons**: Limited resources, custom domain needs upgrade
 
 ### Option 3: Fly.io + Vercel
+
 - **Fly.io**: Free tier with 3 shared CPUs
 - **Pros**: Great performance, Docker-based
 - **Cons**: More complex setup
@@ -107,11 +116,13 @@ Your Railway trial ended, but don't worry! Here are excellent free alternatives.
 ## 🛠️ Troubleshooting Render
 
 ### Common Issues:
+
 1. **Build fails**: Check Python version in environment variables
 2. **Database connection**: Verify DATABASE_URL is correct
 3. **Static files**: Render handles this automatically with Whitenoise
 
 ### Render Free Tier Limits:
+
 - **750 hours/month** (31 days × 24 hours = 744 hours)
 - **1GB PostgreSQL** database
 - **100GB bandwidth**

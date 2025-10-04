@@ -11,6 +11,7 @@
 ### Step 2: Configure Web Service
 
 **Basic Settings:**
+
 - **Name**: `gps-tracking-backend`
 - **Region**: Select closest to you
 - **Branch**: `main`
@@ -18,6 +19,7 @@
 - **Runtime**: `Python 3`
 
 **Build & Deploy:**
+
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `gunicorn protrack.wsgi:application`
 

@@ -5,6 +5,7 @@ Your GPS Tracking System is ready to deploy on Render! Since Render has connecte
 ## 🌐 **Step 1: Deploy Backend (Django) on Render**
 
 ### **Create Web Service**
+
 1. **Go to your Render Dashboard** (render.com/dashboard)
 2. **Click "New +"** → **"Web Service"**
 3. **Connect Repository**: Select `GPS-Tracking-Systeam`
@@ -16,7 +17,9 @@ Your GPS Tracking System is ready to deploy on Render! Since Render has connecte
    - **Start Command**: `gunicorn protrack.wsgi:application`
 
 ### **Environment Variables**
+
 Add these in the Environment tab:
+
 ```
 DEBUG=False
 SECRET_KEY=gps-tracking-super-secret-key-change-2024
@@ -25,6 +28,7 @@ PYTHON_VERSION=3.12.0
 ```
 
 ### **Add PostgreSQL Database**
+
 1. **Click "New +"** → **"PostgreSQL"**
 2. **Name**: `gps-tracking-db`
 3. **Copy the Internal Database URL**
@@ -47,6 +51,7 @@ PYTHON_VERSION=3.12.0
 ## 🔄 **Step 3: Final Configuration**
 
 1. **Update Render backend** with frontend URL:
+
    ```
    FRONTEND_URL=https://your-vercel-app.vercel.app
    ```
@@ -54,14 +59,17 @@ PYTHON_VERSION=3.12.0
 2. **Redeploy both services**
 
 ## ✅ **Your URLs will be**:
+
 - **Frontend**: `https://your-project.vercel.app`
 - **Backend**: `https://your-service.onrender.com`
 
 ## 🆓 **Free Tier Limits**:
+
 - **Render Free**: 750 hours/month, sleeps after 15 min inactivity
 - **Vercel Free**: Unlimited static sites, 100GB bandwidth
 
 ## 🛠️ **Troubleshooting**:
+
 - **Cold starts**: Free tier services sleep, first request may be slow
 - **Database**: Use internal URL for better performance
 - **CORS**: Already configured for production

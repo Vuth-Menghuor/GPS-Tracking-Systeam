@@ -94,8 +94,7 @@ WSGI_APPLICATION = 'protrack.wsgi.application'
 
 # Database configuration for production and development
 if os.getenv('DATABASE_URL'):
-    # Production database (Railway, Heroku, etc.)
-    import dj_database_url
+    # Production database (Render, Railway, Heroku, etc.)
     DATABASES = {
         'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
     }
