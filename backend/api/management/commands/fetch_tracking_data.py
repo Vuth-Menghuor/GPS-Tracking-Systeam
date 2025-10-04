@@ -36,7 +36,16 @@ class Command(BaseCommand):
             
             # Step 1: Load IMEIs and get token
             self.stdout.write('📋 Loading IMEIs and getting token...')
-            imeis = get_imeis_from_csv(options['imei_file'])
+            
+            # Get the full path to the IMEI file
+            imei_file = options['imei_file']
+            if not os.path.isabs(imei_file):
+                # If it's not an absolute path, look in the scripts directory
+                scripts_path = os.path.join(settings.BASE_DIR, 'scripts', imei_file)
+                if os.path.exists(scripts_path):
+                    imei_file = scripts_path
+            
+            imeis = get_imeis_from_csv(imei_file)
             self.stdout.write(self.style.SUCCESS(f'✅ Loaded {len(imeis)} IMEIs'))
             
             token = get_token()
