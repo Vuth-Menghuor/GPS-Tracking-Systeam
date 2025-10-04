@@ -93,13 +93,14 @@ WSGI_APPLICATION = 'protrack.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Database configuration for production and development
-if os.getenv('DATABASE_URL'):
+database_url = os.getenv('DATABASE_URL')
+if database_url and database_url.startswith(('postgres://', 'postgresql://')):
     # Production database (Render, Railway, Heroku, etc.)
     DATABASES = {
-        'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
+        'default': dj_database_url.parse(database_url)
     }
 else:
-    # Development database
+    # Development database or fallback
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -172,6 +173,10 @@ if FRONTEND_URL:
 # For production, allow all origins temporarily for easier setup
 if not DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+    
+# Additional CORS settings for better compatibility
+CORS_ALLOW_CREDENTIALS = True
+CORS_PREFLIGHT_MAX_AGE = 86400
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_HEADERS = True
