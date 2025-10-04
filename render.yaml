@@ -27,11 +27,15 @@ services:
     env: node
     rootDir: frontend/nuxt-app
     buildCommand: "./build.sh"
-    startCommand: "npm run preview"
+    startCommand: "node .output/server/index.mjs"
     plan: free
     envVars:
       - key: NUXT_PUBLIC_API_BASE
         value: "https://gps-tracking-systeam.onrender.com/api"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: PORT
+        value: "10000"
 
 databases:
   - name: gps-tracking-db
