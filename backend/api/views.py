@@ -325,6 +325,8 @@ def get_device_data(request):
 def fetch_tracking_data(request):
     """Fetch new GPS tracking data from API"""
     try:
+        import traceback
+        
         # Run the management command
         call_command('fetch_tracking_data')
         
@@ -350,7 +352,17 @@ def fetch_tracking_data(request):
         })
         
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        import traceback
+        error_details = {
+            'error': str(e),
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc()
+        }
+        return JsonResponse({
+            'success': False, 
+            'error': str(e),
+            'details': error_details
+        }, status=500)
 
 
 @csrf_exempt
