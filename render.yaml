@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: gps-tracking-backend
+    env: python
+    rootDir: backend
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn protrack.wsgi:application"
+    plan: free
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        value: "gps-tracking-super-secret-key-change-in-production-2024"
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: PROTRACK_API_TOKEN
+        value: "your-protrack-api-token-here"
+
+databases:
+  - name: gps-tracking-db
+    databaseName: gps_tracking
+    user: gps_user
+    plan: free
