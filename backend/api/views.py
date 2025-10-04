@@ -370,12 +370,56 @@ def fetch_tracking_data(request):
 def load_to_database(request):
     """Load JSON data to database"""
     try:
-        data = json.loads(request.body)
-        json_file = data.get('json_file')
-        clear_existing = data.get('clear_existing', False)
+        import traceback
         
+        # Handle both JSON and form data
+        if request.content_type and 'application/json' in request.content_type:
+            try:
+                data = json.loads(request.body)
+                json_file = data.get('json_file')
+                clear_existing = data.get('clear_existing', False)
+            except json.JSONDecodeError:
+                # If JSON parsing fails, try to get the latest file
+                json_file = None
+                clear_existing = False
+        else:
+            # Handle form data or empty body
+            json_file = request.POST.get('json_file')
+            clear_existing = request.POST.get('clear_existing', 'false').lower() == 'true'
+        
+        # If no specific JSON file provided, get the latest one
+        if not json_file:
+            response_logs_dir = os.path.join(settings.BASE_DIR, 'response_logs')
+            if os.path.exists(response_logs_dir):
+                folders = [f for f in os.listdir(response_logs_dir) if f.startswith('tracking_run_')]
+                if folders:
+                    latest_folder = sorted(folders)[-1]
+                    json_file = os.path.join(response_logs_dir, latest_folder, 'all_records.json')
+                    
         if not json_file or not os.path.exists(json_file):
-            return JsonResponse({'success': False, 'error': 'JSON file not found'}, status=400)
+            # Try to run fetch first, then load
+            try:
+                call_command('fetch_tracking_data')
+                
+                # Get the newly created file
+                response_logs_dir = os.path.join(settings.BASE_DIR, 'response_logs')
+                if os.path.exists(response_logs_dir):
+                    folders = [f for f in os.listdir(response_logs_dir) if f.startswith('tracking_run_')]
+                    if folders:
+                        latest_folder = sorted(folders)[-1]
+                        json_file = os.path.join(response_logs_dir, latest_folder, 'all_records.json')
+                        
+                if not json_file or not os.path.exists(json_file):
+                    return JsonResponse({
+                        'success': False, 
+                        'error': 'No GPS data file found. Please fetch tracking data first.'
+                    }, status=400)
+                    
+            except Exception as fetch_error:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Failed to fetch GPS data: {str(fetch_error)}'
+                }, status=500)
         
         # Build command arguments
         cmd_args = ['load_device_data', json_file]
@@ -395,7 +439,17 @@ def load_to_database(request):
         })
         
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        import traceback
+        error_details = {
+            'error': str(e),
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc()
+        }
+        return JsonResponse({
+            'success': False, 
+            'error': str(e),
+            'details': error_details
+        }, status=500)
 
 
 @csrf_exempt
